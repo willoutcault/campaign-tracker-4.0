@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3>Target Lists</h3>
+  <a class="btn btn-primary btn-sm" href="{{ url_for('target_lists.upload_target_list') }}">Upload Target List</a>
+</div>
+<table class="table table-striped table-sm">
+  <thead><tr><th>ID</th><th>Label</th><th>S3 Key</th><th>Original File</th><th>Size</th><th>Uploaded</th></tr></thead>
+  <tbody>
+    {% for tl in tls %}
+    <tr>
+      <td>{{ tl.id }}</td><td>{{ tl.label }}</td><td><code>{{ tl.s3_key }}</code></td><td>{{ tl.original_filename }}</td>
+      <td>{{ tl.size_bytes or 0 }}</td><td>{{ tl.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

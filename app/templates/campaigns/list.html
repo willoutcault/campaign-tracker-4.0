@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3>Campaigns</h3>
+  <a class="btn btn-primary btn-sm" href="{{ url_for('campaigns.create_campaign') }}">New Campaign</a>
+</div>
+<table class="table table-striped table-sm">
+  <thead><tr><th>ID</th><th>Name</th><th>Contract</th><th>Description</th><th></th></tr></thead>
+  <tbody>
+    {% for c in campaigns %}
+    <tr>
+      <td>{{ c.id }}</td><td>{{ c.name }}</td><td>{{ c.contract.name }}</td><td>{{ c.description or '' }}</td>
+      <td><a class="btn btn-outline-secondary btn-sm" href="{{ url_for('campaigns.edit_campaign', campaign_id=c.id) }}">Edit</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

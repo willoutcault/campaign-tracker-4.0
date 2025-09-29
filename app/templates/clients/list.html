@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3>Clients</h3>
+  <a class="btn btn-primary btn-sm" href="{{ url_for('clients.create_client') }}">New Client</a>
+</div>
+<table class="table table-striped table-sm">
+  <thead><tr><th>ID</th><th>Name</th><th>Notes</th><th>Created</th><th></th></tr></thead>
+  <tbody>
+    {% for c in clients %}
+    <tr>
+      <td>{{ c.id }}</td><td>{{ c.name }}</td><td>{{ c.notes or '' }}</td><td>{{ c.created_at.date() }}</td>
+      <td><a class="btn btn-outline-secondary btn-sm" href="{{ url_for('clients.edit_client', client_id=c.id) }}">Edit</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

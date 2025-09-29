@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>New Placement</h3>
+<form method="post">
+  <div class="mb-3">
+    <label class="form-label">Name</label>
+    <input class="form-control" type="text" name="name" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Program</label>
+    <select class="form-select" name="program_id" required>
+      <option value="">Select…</option>
+      {% for p in programs %}
+      <option value="{{ p.id }}">{{ p.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label class="form-label">Channel</label>
+      <input class="form-control" type="text" name="channel" placeholder="email, app, web, ...">
+    </div>
+    <div class="col-md-6 mb-3">
+      <label class="form-label">Status</label>
+      <input class="form-control" type="text" name="status" placeholder="planned, live, paused, complete">
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label class="form-label">Start Date</label>
+      <input class="form-control" type="date" name="start_date">
+    </div>
+    <div class="col-md-6 mb-3">
+      <label class="form-label">End Date</label>
+      <input class="form-control" type="date" name="end_date">
+    </div>
+  </div>
+  <button class="btn btn-primary">Save</button>
+</form>
+{% endblock %}

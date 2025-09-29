@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Campaign Tracker 4.0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('main.index') }}">Campaign Tracker 4.0</a>
+        <div class="navbar-nav">
+          <a class="nav-link" href="{{ url_for('clients.list_clients') }}">Clients</a>
+          <a class="nav-link" href="{{ url_for('target_lists.list_target_lists') }}">Target Lists</a>
+          <a class="nav-link" href="{{ url_for('contracts.list_contracts') }}">Contracts</a>
+          <a class="nav-link" href="{{ url_for('campaigns.list_campaigns') }}">Campaigns</a>
+          <a class="nav-link" href="{{ url_for('programs.list_programs') }}">Programs</a>
+          <a class="nav-link" href="{{ url_for('placements.list_placements') }}">Placements</a>
+        </div>
+      </div>
+    </nav>
+    <main class="container my-4">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="mb-3">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+          {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

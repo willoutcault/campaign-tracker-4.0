@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3>Contracts</h3>
+  <a class="btn btn-primary btn-sm" href="{{ url_for('contracts.create_contract') }}">New Contract</a>
+</div>
+<table class="table table-striped table-sm">
+  <thead><tr><th>ID</th><th>Name</th><th>Pharma</th><th>Brands</th><th></th></tr></thead>
+  <tbody>
+    {% for ct in contracts %}
+    <tr>
+      <td>{{ ct.id }}</td>
+      <td>{{ ct.name }}</td>
+      <td>{{ ct.pharma.name }}</td>
+      <td>{{ ', '.join([b.name for b in ct.brands]) }}</td>
+      <td><a class="btn btn-outline-secondary btn-sm" href="{{ url_for('contracts.edit_contract', contract_id=ct.id) }}">Edit</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

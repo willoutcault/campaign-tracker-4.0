@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>{{ 'Edit' if client else 'New' }} Client</h3>
+<form method="post">
+  <div class="mb-3">
+    <label class="form-label">Name</label>
+    <input class="form-control" type="text" name="name" value="{{ client.name if client else '' }}" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Notes</label>
+    <textarea class="form-control" name="notes" rows="3">{{ client.notes if client else '' }}</textarea>
+  </div>
+  <button class="btn btn-primary">Save</button>
+</form>
+{% endblock %}
