@@ -12,7 +12,7 @@
       <td>{{ ct.id }}</td>
       <td>{{ ct.name }}</td>
       <td>{{ ct.pharma.name }}</td>
-      <td>{{ ', '.join([b.name for b in ct.brands]) }}</td>
+      <td>{{ ct.brands | map(attribute='name') | list | join(', ') }}</td>
       <td><a class="btn btn-outline-secondary btn-sm" href="{{ url_for('contracts.edit_contract', contract_id=ct.id) }}">Edit</a></td>
     </tr>
     {% endfor %}

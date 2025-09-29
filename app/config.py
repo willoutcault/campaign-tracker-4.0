@@ -1,10 +1,21 @@
 import os
 from dotenv import load_dotenv
 
+def _sqlite_uri_for_instance(app):
+    db_path = os.path.join(app.instance_path, "app.db")
+    db_path = db_path.replace("\\", "/")
+    return f"sqlite:///{db_path}"
+
 def load_config(app):
     load_dotenv()
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev")
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///instance/app.db")
+
+    env_uri = os.getenv("DATABASE_URL")
+    if not env_uri or env_uri.strip() == "" or env_uri.strip().endswith("instance/app.db"):
+        app.config["SQLALCHEMY_DATABASE_URI"] = _sqlite_uri_for_instance(app)
+    else:
+        app.config["SQLALCHEMY_DATABASE_URI"] = env_uri
+
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     # S3

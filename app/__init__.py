@@ -15,7 +15,12 @@ def create_app():
         os.makedirs(app.instance_path, exist_ok=True)
     except OSError:
         pass
+
     db.init_app(app)
+
+    # Auto-create tables on startup if they don't exist
+    with app.app_context():
+        db.create_all()
 
     # register blueprints
     app.register_blueprint(main_bp)
