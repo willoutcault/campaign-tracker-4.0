@@ -1,4 +1,5 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from ..extensions import db
 from ..models import Pharma, Brand, Contract, Campaign, Program, Placement, TargetList
 
@@ -7,7 +8,13 @@ campaigns_bp = Blueprint("campaigns", __name__)
 programs_bp = Blueprint("programs", __name__)
 placements_bp = Blueprint("placements", __name__)
 
-# -------- Contracts --------
+# -------- Contracts (with Pharma/Brand helpers) --------
+@contracts_bp.route("/api/brands/<int:pharma_id>")
+def api_brands(pharma_id):
+    pharma = Pharma.query.get_or_404(pharma_id)
+    data = [{"id": b.id, "name": b.name} for b in pharma.brands]
+    return jsonify(data)
+
 @contracts_bp.route("/")
 def list_contracts():
     contracts = Contract.query.order_by(Contract.id.desc()).all()
@@ -15,70 +22,77 @@ def list_contracts():
 
 @contracts_bp.route("/create", methods=["GET","POST"])
 def create_contract():
+    pharmas = Pharma.query.order_by(Pharma.name).all()
     if request.method == "POST":
         name = request.form.get("name", "").strip()
+        pharma_id = request.form.get("pharma_id", type=int)
+        brand_ids = request.form.getlist("brand_ids", type=int)
+
+        # Fallbacks for older form shape
         pharma_name = request.form.get("pharma", "").strip()
-        brand_names = [b.strip() for b in request.form.get("brands","").split(",") if b.strip()]
-        if not name or not pharma_name:
+        brands_csv = request.form.get("brands", "").strip()
+
+        if not name or not (pharma_id or pharma_name):
             flash("Contract name and Pharma are required.", "danger")
-            return render_template("contracts/form.html", contract=None)
+            return render_template("contracts/form.html", contract=None, pharmas=pharmas)
 
-        pharma = Pharma.query.filter_by(name=pharma_name).first()
-        if not pharma:
-            pharma = Pharma(name=pharma_name)
-            db.session.add(pharma)
-            db.session.flush()
-
-        contract = Contract(name=name, pharma=pharma)
-        db.session.add(contract)
-        db.session.flush()
-
-        # attach brands
-        for bn in brand_names:
-            b = Brand.query.filter_by(name=bn, pharma=pharma).first()
-            if not b:
-                b = Brand(name=bn, pharma=pharma)
-                db.session.add(b)
-                db.session.flush()
-            contract.brands.append(b)
-
-        db.session.commit()
-        flash("Contract created.", "success")
-        return redirect(url_for("contracts.list_contracts"))
-    return render_template("contracts/form.html", contract=None)
-
-@contracts_bp.route("/<int:contract_id>/edit", methods=["GET","POST"])
-def edit_contract(contract_id):
-    contract = Contract.query.get_or_404(contract_id)
-    if request.method == "POST":
-        name = request.form.get("name", "").strip()
-        pharma_name = request.form.get("pharma", "").strip()
-        brand_names = [b.strip() for b in request.form.get("brands","").split(",") if b.strip()]
-        if not name or not pharma_name:
-            flash("Contract name and Pharma are required.", "danger")
+        if pharma_id:
+            pharma = Pharma.query.get_or_404(pharma_id)
         else:
-            contract.name = name
-            # pharma
             pharma = Pharma.query.filter_by(name=pharma_name).first()
             if not pharma:
                 pharma = Pharma(name=pharma_name)
                 db.session.add(pharma)
                 db.session.flush()
-            contract.pharma = pharma
-            # brands
-            contract.brands.clear()
-            for bn in brand_names:
+
+        contract = Contract(name=name, pharma=pharma)
+        db.session.add(contract)
+        db.session.flush()
+
+        # Attach brands via ids, else parse CSV
+        if brand_ids:
+            for bid in brand_ids:
+                b = Brand.query.get(bid)
+                if b and b.pharma_id == pharma.id:
+                    contract.brands.append(b)
+        else:
+            for bn in [b.strip() for b in (brands_csv or '').split(',') if b.strip()]:
                 b = Brand.query.filter_by(name=bn, pharma=pharma).first()
                 if not b:
                     b = Brand(name=bn, pharma=pharma)
                     db.session.add(b)
                     db.session.flush()
                 contract.brands.append(b)
+
+        db.session.commit()
+        flash("Contract created.", "success")
+        return redirect(url_for("contracts.list_contracts"))
+    return render_template("contracts/form.html", contract=None, pharmas=pharmas)
+
+@contracts_bp.route("/<int:contract_id>/edit", methods=["GET","POST"])
+def edit_contract(contract_id):
+    contract = Contract.query.get_or_404(contract_id)
+    pharmas = Pharma.query.order_by(Pharma.name).all()
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        pharma_id = request.form.get("pharma_id", type=int)
+        brand_ids = request.form.getlist("brand_ids", type=int)
+        if not name or not pharma_id:
+            flash("Contract name and Pharma are required.", "danger")
+        else:
+            contract.name = name
+            pharma = Pharma.query.get_or_404(pharma_id)
+            contract.pharma = pharma
+            contract.brands.clear()
+            for bid in brand_ids:
+                b = Brand.query.get(bid)
+                if b and b.pharma_id == pharma.id:
+                    contract.brands.append(b)
             db.session.commit()
             flash("Contract updated.", "success")
             return redirect(url_for("contracts.list_contracts"))
-    brands_csv = ", ".join([b.name for b in contract.brands])
-    return render_template("contracts/form.html", contract=contract, brands_csv=brands_csv)
+    brands_selected = {b.id for b in contract.brands}
+    return render_template("contracts/form.html", contract=contract, pharmas=pharmas, brands_selected=brands_selected)
 
 # -------- Campaigns --------
 @campaigns_bp.route("/")
@@ -88,14 +102,12 @@ def list_campaigns():
 
 @campaigns_bp.route("/create", methods=["GET","POST"])
 def create_campaign():
-    from ..models import Contract
     contracts = Contract.query.order_by(Contract.name).all()
     if request.method == "POST":
         name = request.form.get("name","").strip()
         contract_id = request.form.get("contract_id", type=int)
         desc = request.form.get("description","").strip()
         if not name or not contract_id:
-            from flask import flash
             flash("Name and Contract are required.", "danger")
         else:
             c = Campaign(name=name, contract_id=contract_id, description=desc)
@@ -107,7 +119,6 @@ def create_campaign():
 @campaigns_bp.route("/<int:campaign_id>/edit", methods=["GET","POST"])
 def edit_campaign(campaign_id):
     c = Campaign.query.get_or_404(campaign_id)
-    from ..models import Contract
     contracts = Contract.query.order_by(Contract.name).all()
     if request.method == "POST":
         c.name = request.form.get("name","").strip()
@@ -132,14 +143,13 @@ def create_program():
         campaign_id = request.form.get("campaign_id", type=int)
         target_list_id = request.form.get("target_list_id", type=int)
         if not name or not campaign_id:
-            from flask import flash
             flash("Name and Campaign are required.", "danger")
         else:
             prg = Program(name=name, campaign_id=campaign_id, target_list_id=target_list_id)
             db.session.add(prg)
             db.session.commit()
             return redirect(url_for("programs.list_programs"))
-    return render_template("programs/form.html", programs=None, campaigns=campaigns, target_lists=tls)
+    return render_template("programs/form.html", program=None, campaigns=campaigns, target_lists=tls)
 
 @programs_bp.route("/<int:program_id>/edit", methods=["GET","POST"])
 def edit_program(program_id):
@@ -171,7 +181,6 @@ def create_placement():
         start_date = request.form.get("start_date") or None
         end_date = request.form.get("end_date") or None
         if not name or not program_id:
-            from flask import flash
             flash("Name and Program are required.", "danger")
         else:
             from datetime import date
@@ -188,3 +197,4 @@ def create_placement():
             db.session.commit()
             return redirect(url_for("placements.list_placements"))
     return render_template("placements/form.html", programs=programs)
+

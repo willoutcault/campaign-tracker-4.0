@@ -8,12 +8,46 @@
   </div>
   <div class="mb-3">
     <label class="form-label">Pharma</label>
-    <input class="form-control" type="text" name="pharma" value="{{ contract.pharma.name if contract else '' }}" required>
+    <select class="form-select" id="pharma_id" name="pharma_id" required>
+      <option value="">Select…</option>
+      {% for p in pharmas %}
+      <option value="{{ p.id }}" {% if contract and p.id == contract.pharma_id %}selected{% endif %}>{{ p.name }}</option>
+      {% endfor %}
+    </select>
   </div>
   <div class="mb-3">
-    <label class="form-label">Brands (comma-separated)</label>
-    <input class="form-control" type="text" name="brands" value="{{ brands_csv if contract else '' }}">
+    <label class="form-label">Brands</label>
+    <select class="form-select" id="brand_ids" name="brand_ids" multiple size="6"></select>
+    <div class="form-text">Hold Ctrl/⌘ to select multiple.</div>
   </div>
   <button class="btn btn-primary">Save</button>
 </form>
+
+<script>
+async function loadBrands(pharmaId, selectedIds) {
+  const brandSelect = document.getElementById('brand_ids');
+  brandSelect.innerHTML = '';
+  if (!pharmaId) return;
+  const res = await fetch(`/contracts/api/brands/${pharmaId}`);
+  if (!res.ok) return;
+  const data = await res.json();
+  data.sort((a,b)=> a.name.localeCompare(b.name));
+  data.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.id;
+    opt.textContent = b.name;
+    if (selectedIds && selectedIds.includes(b.id)) opt.selected = true;
+    brandSelect.appendChild(opt);
+  });
+}
+
+const pharmaSelect = document.getElementById('pharma_id');
+pharmaSelect.addEventListener('change', () => loadBrands(pharmaSelect.value, []));
+
+// On edit page, pre-select existing brands
+{% if contract %}
+  const preset = {{ (brands_selected or set())|list|tojson }};
+  loadBrands({{ contract.pharma_id }}, preset);
+{% endif %}
+</script>
 {% endblock %}

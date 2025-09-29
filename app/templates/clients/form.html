@@ -3,8 +3,14 @@
 <h3>{{ 'Edit' if client else 'New' }} Client</h3>
 <form method="post">
   <div class="mb-3">
-    <label class="form-label">Name</label>
+    <label class="form-label">Name (also used as Pharma)</label>
     <input class="form-control" type="text" name="name" value="{{ client.name if client else '' }}" required>
+    <div class="form-text">We’ll auto-create a Pharma with this name if it doesn’t exist.</div>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Default Brands (comma‑separated)</label>
+    <input class="form-control" type="text" name="default_brands" placeholder="e.g., Dupixent, Keytruda, Cabometyx">
+    <div class="form-text">These will be created under the Pharma if they don’t already exist.</div>
   </div>
   <div class="mb-3">
     <label class="form-label">Notes</label>
