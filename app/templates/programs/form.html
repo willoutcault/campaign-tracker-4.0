@@ -18,7 +18,9 @@
       <div class="form-text">Target Lists below will filter by this campaign's pharma/brands.</div>
     </div>
     <div class="col-md-6 mb-3">
-      <label class="form-label">Target List</label>
+      <label class="form-label" style="margin-right: 5px;">Target List</label>
+      <input class="form-check-input" type="checkbox" id="show_all_tls">
+      <label class="form-check-label" for="show_all_tls">Show all</label>
       <div class="d-flex gap-2">
         <select class="form-select" id="target_list_id" name="target_list_id">
           <option value="">(none)</option>
@@ -28,10 +30,6 @@
             {% endfor %}
           {% endif %}
         </select>
-        <div class="form-check align-self-center">
-          <input class="form-check-input" type="checkbox" id="show_all_tls">
-          <label class="form-check-label" for="show_all_tls">Show all</label>
-        </div>
       </div>
     </div>
   </div>
