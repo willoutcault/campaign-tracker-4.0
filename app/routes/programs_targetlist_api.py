@@ -16,27 +16,23 @@ def api_program_target_lists():
 
     camp = Campaign.query.get_or_404(campaign_id)
     contract = Contract.query.get_or_404(camp.contract_id)
-
     pharma_id = contract.pharma_id
     brand_ids = [b.id for b in contract.brands]
 
-    # Require BOTH: mapped to the pharma AND to ANY brand on the contract
-    if not pharma_id or not brand_ids:
-        tls = []
-    else:
+    tls = []
+    if pharma_id and brand_ids:
         tls = (TargetList.query
-            .filter(
-                TargetList.pharmas.any(Pharma.id == pharma_id),
-                TargetList.brands.any(Brand.id.in_(brand_ids))
-            )
-            .order_by(TargetList.label)
-            .all())
+               .filter(
+                 TargetList.pharmas.any(Pharma.id == pharma_id),
+                 TargetList.brands.any(Brand.id.in_(brand_ids))
+               )
+               .order_by(TargetList.label)
+               .all())
 
-    # keep current selection visible (edit screens)
-    if current_tl_id and all(tl.id != current_tl_id for tl in tls):
+    if current_tl_id and all(t.id != current_tl_id for t in tls):
         cur = TargetList.query.get(current_tl_id)
         if cur:
             tls.append(cur)
 
-    tls = sorted(tls, key=lambda x: (x.label or "").lower())
-    return jsonify([{"id": tl.id, "label": tl.label} for tl in tls])
+    tls.sort(key=lambda x: (x.label or '').lower())
+    return jsonify([{"id": t.id, "label": t.label} for t in tls])
