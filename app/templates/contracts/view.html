@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>Contract: {{ contract.name }}</h3>
+<p class="text-muted">Pharma: <strong>{{ contract.pharma.name }}</strong> · Brands: {{ contract.brands | map(attribute='name') | list | join(', ') }}</p>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Create Campaign</h5>
+        <form method="post" action="{{ url_for('contracts.contract_create_campaign', contract_id=contract.id) }}">
+          <div class="mb-2">
+            <label class="form-label">Name</label>
+            <input class="form-control form-control-sm" type="text" name="name" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Description</label>
+            <textarea class="form-control form-control-sm" name="description" rows="2"></textarea>
+          </div>
+          <button class="btn btn-primary btn-sm">Add Campaign</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Create Program</h5>
+        <form method="post" action="{{ url_for('contracts.contract_create_program', contract_id=contract.id) }}">
+          <div class="mb-2">
+            <label class="form-label">Name</label>
+            <input class="form-control form-control-sm" type="text" name="name" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Campaign</label>
+            <select class="form-select form-select-sm" name="campaign_id" required>
+              <option value="">Select…</option>
+              {% for c in campaigns %}
+              <option value="{{ c.id }}">{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Target List</label>
+            <select class="form-select form-select-sm" name="target_list_id">
+              <option value="">(none)</option>
+              {% for tl in target_lists %}
+              <option value="{{ tl.id }}">{{ tl.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm">Add Program</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Create Placement</h5>
+        <form method="post" action="{{ url_for('contracts.contract_create_placement', contract_id=contract.id) }}">
+          <div class="mb-2">
+            <label class="form-label">Name</label>
+            <input class="form-control form-control-sm" type="text" name="name" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Programs</label>
+            <select class="form-select form-select-sm" name="program_ids" multiple size="6" required>
+              {% for p in all_programs %}
+              <option value="{{ p.id }}">{{ p.name }} ({{ p.campaign.name }})</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Hold Ctrl/⌘ to select multiple.</div>
+          </div>
+          <div class="row">
+            <div class="col-6 mb-2">
+              <label class="form-label">Channel</label>
+              <input class="form-control form-control-sm" type="text" name="channel">
+            </div>
+            <div class="col-6 mb-2">
+              <label class="form-label">Status</label>
+              <input class="form-control form-control-sm" type="text" name="status">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-6 mb-2">
+              <label class="form-label">Start Date</label>
+              <input class="form-control form-control-sm" type="date" name="start_date">
+            </div>
+            <div class="col-6 mb-2">
+              <label class="form-label">End Date</label>
+              <input class="form-control form-control-sm" type="date" name="end_date">
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm">Add Placement</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="my-4">
+<h5>Campaigns & Programs</h5>
+{% if campaigns %}
+  {% for c in campaigns %}
+    <div class="mb-3">
+      <h6 class="mb-2">{{ c.name }}</h6>
+      {% set programs = programs_by_campaign.get(c.id, []) %}
+      {% if programs %}
+        <table class="table table-sm table-striped">
+          <thead><tr><th>Program</th><th>Target List</th><th>Placements</th></tr></thead>
+          <tbody>
+            {% for p in programs %}
+            <tr>
+              <td>{{ p.name }}</td>
+              <td>{{ p.target_list.label if p.target_list else '' }}</td>
+              <td>{{ p.placements | map(attribute='name') | list | join(', ') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="text-muted">No programs yet.</div>
+      {% endif %}
+    </div>
+  {% endfor %}
+{% else %}
+  <div class="alert alert-info">No campaigns yet. Create one using the form above.</div>
+{% endif %}
+
+{% endblock %}

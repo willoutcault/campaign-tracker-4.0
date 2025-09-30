@@ -2,7 +2,9 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h3>Contracts</h3>
-  <a class="btn btn-primary btn-sm" href="{{ url_for('contracts.create_contract') }}">New Contract</a>
+  <div>
+    <a class="btn btn-primary btn-sm" href="{{ url_for('contracts.create_contract') }}">New Contract</a>
+  </div>
 </div>
 <table class="table table-striped table-sm">
   <thead><tr><th>ID</th><th>Name</th><th>Pharma</th><th>Brands</th><th></th></tr></thead>
@@ -13,7 +15,10 @@
       <td>{{ ct.name }}</td>
       <td>{{ ct.pharma.name }}</td>
       <td>{{ ct.brands | map(attribute='name') | list | join(', ') }}</td>
-      <td><a class="btn btn-outline-secondary btn-sm" href="{{ url_for('contracts.edit_contract', contract_id=ct.id) }}">Edit</a></td>
+      <td>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('contracts.edit_contract', contract_id=ct.id) }}">Edit</a>
+        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('contracts.view_contract', contract_id=ct.id) }}">View</a>
+      </td>
     </tr>
     {% endfor %}
   </tbody>

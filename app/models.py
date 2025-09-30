@@ -56,12 +56,19 @@ class Program(db.Model):
     campaign = db.relationship('Campaign', backref=db.backref('programs', lazy=True))
     target_list = db.relationship('TargetList', backref=db.backref('programs', lazy=True))
 
+# --- NEW: many-to-many between Program and Placement ---
+program_placement = db.Table(
+    'program_placement',
+    db.Column('program_id', db.Integer, db.ForeignKey('program.id'), primary_key=True),
+    db.Column('placement_id', db.Integer, db.ForeignKey('placement.id'), primary_key=True),
+)
+
 class Placement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
-    program_id = db.Column(db.Integer, db.ForeignKey('program.id'), nullable=False)
     channel = db.Column(db.String(100), nullable=True)  # e.g., email, app, web
     status = db.Column(db.String(50), nullable=True)    # planned, live, paused, complete
     start_date = db.Column(db.Date, nullable=True)
     end_date = db.Column(db.Date, nullable=True)
-    program = db.relationship('Program', backref=db.backref('placements', lazy=True))
+    # many-to-many: a placement can belong to multiple programs
+    programs = db.relationship('Program', secondary=program_placement, backref='placements')

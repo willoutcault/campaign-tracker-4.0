@@ -20,6 +20,26 @@ def list_contracts():
     contracts = Contract.query.order_by(Contract.id.desc()).all()
     return render_template("contracts/list.html", contracts=contracts)
 
+@contracts_bp.route("/<int:contract_id>")
+def view_contract(contract_id):
+    contract = Contract.query.get_or_404(contract_id)
+    # Prefetch children
+    campaigns = Campaign.query.filter_by(contract_id=contract.id).order_by(Campaign.name).all()
+    # Target lists for program forms
+    tls = TargetList.query.order_by(TargetList.uploaded_at.desc()).all()
+    # Programs grouped by campaign
+    programs_by_campaign = {}
+    for c in campaigns:
+        programs_by_campaign[c.id] = Program.query.filter_by(campaign_id=c.id).order_by(Program.name).all()
+    # For placement forms, provide all programs under this contract
+    all_programs = Program.query.join(Campaign, Program.campaign_id == Campaign.id).filter(Campaign.contract_id == contract.id).order_by(Program.name).all()
+    return render_template("contracts/view.html",
+                           contract=contract,
+                           campaigns=campaigns,
+                           target_lists=tls,
+                           programs_by_campaign=programs_by_campaign,
+                           all_programs=all_programs)
+
 @contracts_bp.route("/create", methods=["GET","POST"])
 def create_contract():
     pharmas = Pharma.query.order_by(Pharma.name).all()
@@ -28,7 +48,6 @@ def create_contract():
         pharma_id = request.form.get("pharma_id", type=int)
         brand_ids = request.form.getlist("brand_ids", type=int)
 
-        # Fallbacks for older form shape
         pharma_name = request.form.get("pharma", "").strip()
         brands_csv = request.form.get("brands", "").strip()
 
@@ -49,7 +68,6 @@ def create_contract():
         db.session.add(contract)
         db.session.flush()
 
-        # Attach brands via ids, else parse CSV
         if brand_ids:
             for bid in brand_ids:
                 b = Brand.query.get(bid)
@@ -66,7 +84,7 @@ def create_contract():
 
         db.session.commit()
         flash("Contract created.", "success")
-        return redirect(url_for("contracts.list_contracts"))
+        return redirect(url_for("contracts.view_contract", contract_id=contract.id))
     return render_template("contracts/form.html", contract=None, pharmas=pharmas)
 
 @contracts_bp.route("/<int:contract_id>/edit", methods=["GET","POST"])
@@ -90,9 +108,71 @@ def edit_contract(contract_id):
                     contract.brands.append(b)
             db.session.commit()
             flash("Contract updated.", "success")
-            return redirect(url_for("contracts.list_contracts"))
+            return redirect(url_for("contracts.view_contract", contract_id=contract.id))
     brands_selected = {b.id for b in contract.brands}
     return render_template("contracts/form.html", contract=contract, pharmas=pharmas, brands_selected=brands_selected)
+
+# ---- Nested creates from contract page ----
+@contracts_bp.route("/<int:contract_id>/create-campaign", methods=["POST"])
+def contract_create_campaign(contract_id):
+    contract = Contract.query.get_or_404(contract_id)
+    name = request.form.get("name", "").strip()
+    desc = request.form.get("description", "").strip()
+    if not name:
+        flash("Campaign name is required.", "danger")
+        return redirect(url_for("contracts.view_contract", contract_id=contract.id))
+    c = Campaign(name=name, contract_id=contract.id, description=desc)
+    db.session.add(c)
+    db.session.commit()
+    flash("Campaign created.", "success")
+    return redirect(url_for("contracts.view_contract", contract_id=contract.id))
+
+@contracts_bp.route("/<int:contract_id>/create-program", methods=["POST"])
+def contract_create_program(contract_id):
+    contract = Contract.query.get_or_404(contract_id)
+    name = request.form.get("name", "").strip()
+    campaign_id = request.form.get("campaign_id", type=int)
+    target_list_id = request.form.get("target_list_id", type=int)
+    if not name or not campaign_id:
+        flash("Program name and Campaign are required.", "danger")
+        return redirect(url_for("contracts.view_contract", contract_id=contract.id))
+    prg = Program(name=name, campaign_id=campaign_id, target_list_id=target_list_id)
+    db.session.add(prg)
+    db.session.commit()
+    flash("Program created.", "success")
+    return redirect(url_for("contracts.view_contract", contract_id=contract.id))
+
+@contracts_bp.route("/<int:contract_id>/create-placement", methods=["POST"])
+def contract_create_placement(contract_id):
+    contract = Contract.query.get_or_404(contract_id)
+    name = request.form.get("name", "").strip()
+    program_ids = request.form.getlist("program_ids", type=int)  # multiple
+    channel = request.form.get("channel","").strip() or None
+    status = request.form.get("status","").strip() or None
+    start_date = request.form.get("start_date") or None
+    end_date = request.form.get("end_date") or None
+    if not name or not program_ids:
+        flash("Placement name and at least one Program are required.", "danger")
+        return redirect(url_for("contracts.view_contract", contract_id=contract.id))
+
+    from datetime import date
+    def parse_d(s):
+        try:
+            return date.fromisoformat(s) if s else None
+        except Exception:
+            return None
+
+    pl = Placement(
+        name=name, channel=channel, status=status,
+        start_date=parse_d(start_date), end_date=parse_d(end_date)
+    )
+    db.session.add(pl)
+    db.session.flush()
+    chosen = Program.query.filter(Program.id.in_(program_ids)).all()
+    pl.programs = chosen
+    db.session.commit()
+    flash("Placement created.", "success")
+    return redirect(url_for("contracts.view_contract", contract_id=contract.id))
 
 # -------- Campaigns --------
 @campaigns_bp.route("/")
@@ -164,7 +244,7 @@ def edit_program(program_id):
         return redirect(url_for("programs.list_programs"))
     return render_template("programs/form.html", program=prg, campaigns=campaigns, target_lists=tls)
 
-# -------- Placements --------
+# -------- Placements (M2M with Programs) --------
 @placements_bp.route("/")
 def list_placements():
     rows = Placement.query.order_by(Placement.id.desc()).all()
@@ -175,13 +255,13 @@ def create_placement():
     programs = Program.query.order_by(Program.name).all()
     if request.method == "POST":
         name = request.form.get("name","").strip()
-        program_id = request.form.get("program_id", type=int)
+        program_ids = request.form.getlist("program_ids", type=int)  # multiple
         channel = request.form.get("channel","").strip() or None
         status = request.form.get("status","").strip() or None
         start_date = request.form.get("start_date") or None
         end_date = request.form.get("end_date") or None
-        if not name or not program_id:
-            flash("Name and Program are required.", "danger")
+        if not name or not program_ids:
+            flash("Name and at least one Program are required.", "danger")
         else:
             from datetime import date
             def parse_d(s):
@@ -190,11 +270,46 @@ def create_placement():
                 except Exception:
                     return None
             pl = Placement(
-                name=name, program_id=program_id, channel=channel, status=status,
+                name=name, channel=channel, status=status,
                 start_date=parse_d(start_date), end_date=parse_d(end_date)
             )
             db.session.add(pl)
+            db.session.flush()
+            # attach programs
+            if program_ids:
+                chosen = Program.query.filter(Program.id.in_(program_ids)).all()
+                pl.programs = chosen
             db.session.commit()
             return redirect(url_for("placements.list_placements"))
-    return render_template("placements/form.html", programs=programs)
+    return render_template("placements/form.html", programs=programs, placement=None)
+
+@placements_bp.route("/<int:placement_id>/edit", methods=["GET","POST"])
+def edit_placement(placement_id):
+    pl = Placement.query.get_or_404(placement_id)
+    programs = Program.query.order_by(Program.name).all()
+
+    from datetime import date
+    def parse_d(s):
+        try:
+            return date.fromisoformat(s) if s else None
+        except Exception:
+            return None
+
+    if request.method == "POST":
+        pl.name = request.form.get("name","").strip()
+        program_ids = request.form.getlist("program_ids", type=int)  # multiple
+        pl.channel = request.form.get("channel","").strip() or None
+        pl.status = request.form.get("status","").strip() or None
+        pl.start_date = parse_d(request.form.get("start_date") or None)
+        pl.end_date = parse_d(request.form.get("end_date") or None)
+
+        # Update program mappings
+        chosen = Program.query.filter(Program.id.in_(program_ids)).all() if program_ids else []
+        pl.programs = chosen
+        db.session.commit()
+        flash("Placement updated.", "success")
+        return redirect(url_for("placements.list_placements"))
+
+    selected_program_ids = {p.id for p in pl.programs}
+    return render_template("placements/form.html", programs=programs, placement=pl, selected_program_ids=selected_program_ids)
 
