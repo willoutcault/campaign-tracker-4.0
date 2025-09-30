@@ -28,17 +28,15 @@ def list_contracts():
 def view_contract(contract_id):
     contract = Contract.query.get_or_404(contract_id)
     campaigns = Campaign.query.filter_by(contract_id=contract.id).order_by(Campaign.name).all()
-    tls = TargetList.query.order_by(TargetList.uploaded_at.desc()).all()
     programs_by_campaign = {}
     for c in campaigns:
         programs_by_campaign[c.id] = Program.query.filter_by(campaign_id=c.id).order_by(Program.name).all()
-    all_programs = Program.query.join(Campaign, Program.campaign_id == Campaign.id)        .filter(Campaign.contract_id == contract.id).order_by(Program.name).all()
+    all_programs = Program.query.join(Campaign, Program.campaign_id == Campaign.id).filter(Campaign.contract_id == contract.id).order_by(Program.name).all()
     return render_template("contracts/view.html",
-                           contract=contract,
-                           campaigns=campaigns,
-                           target_lists=tls,
-                           programs_by_campaign=programs_by_campaign,
-                           all_programs=all_programs)
+                        contract=contract,
+                        campaigns=campaigns,
+                        programs_by_campaign=programs_by_campaign,
+                        all_programs=all_programs)
 
 @contracts_bp.route("/api/brands/<int:pharma_id>")
 def api_brands(pharma_id):
@@ -236,16 +234,49 @@ def create_program():
 
 @programs_bp.route("/<int:program_id>/edit", methods=["GET","POST"])
 def edit_program(program_id):
-    prg = Program.query.get_or_404(program_id)
+    program = Program.query.get_or_404(program_id)
     campaigns = Campaign.query.order_by(Campaign.name).all()
-    tls = TargetList.query.order_by(TargetList.uploaded_at.desc()).all()
+
     if request.method == "POST":
-        prg.name = request.form.get("name","").strip()
-        prg.campaign_id = request.form.get("campaign_id", type=int)
-        prg.target_list_id = request.form.get("target_list_id", type=int)
+        program.name = request.form.get("name","").strip()
+        program.campaign_id = request.form.get("campaign_id", type=int)
+        program.target_list_id = request.form.get("target_list_id", type=int)
         db.session.commit()
+        nxt = request.form.get("next") or request.args.get("next")
+        if nxt:
+            return redirect(nxt)
         return redirect(url_for("programs.list_programs"))
-    return render_template("programs/form.html", program=prg, campaigns=campaigns, target_lists=tls)
+    
+    # --- prefilter by program's campaign -> contract (pharma & brands) ---
+    filtered_tls = []
+    if program.campaign_id:
+        camp = Campaign.query.get(program.campaign_id)
+        contract = Contract.query.get(camp.contract_id) if camp else None
+        if contract:
+            pharma_id = contract.pharma_id
+            brand_ids = [b.id for b in contract.brands]
+            if pharma_id and brand_ids:
+                filtered_tls = (TargetList.query
+                                .filter(
+                                    TargetList.pharmas.any(Pharma.id == pharma_id),
+                                    TargetList.brands.any(Brand.id.in_(brand_ids))
+                                )
+                                .order_by(TargetList.label)
+                                .all())
+
+    # make sure the currently selected TL is present
+    if program.target_list_id and all(tl.id != program.target_list_id for tl in filtered_tls):
+        cur = TargetList.query.get(program.target_list_id)
+        if cur:
+            filtered_tls.append(cur)
+    filtered_tls = sorted(filtered_tls, key=lambda t: (t.label or "").lower())
+
+    return render_template(
+        "programs/form.html",
+        program=program,
+        campaigns=campaigns,
+        target_lists=filtered_tls,  # template can preload these
+    )
 
 # -------- Placements (M2M) --------
 @placements_bp.route("/")

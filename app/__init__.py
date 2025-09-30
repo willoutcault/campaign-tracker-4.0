@@ -4,6 +4,8 @@ from .extensions import db
 from .routes.main import main_bp
 from .routes.clients import clients_bp
 from .routes.target_lists import target_lists_bp
+from .routes.programs_targetlist_api import programs_bp
+from .routes.placements_edit_override import placements_bp
 from .routes.campaigns_programs import contracts_bp, campaigns_bp, programs_bp, placements_bp
 
 def create_app():
