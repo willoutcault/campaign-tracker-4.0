@@ -1,109 +1,26 @@
+
 {% extends "base.html" %}
 {% block content %}
-<h3>Contract: {{ contract.name }}</h3>
-<p class="text-muted">
-  Pharma: <strong>{{ contract.pharma.name }}</strong>
-  · Brands: <strong>{{ contract.brands | map(attribute='name') | list | join(', ') }}</strong>
+<h3 class="mb-1">Contract: {{ contract.name }}</h3>
+<p class="text-muted mb-2">
+  Pharma: <strong>{{ contract.pharma.name }}</strong> ·
+  Brands: {{ contract.brands | map(attribute='name') | list | join(', ') }}
 </p>
 
-<div class="row g-4">
-  <div class="col-lg-4">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h5 class="card-title">Create Campaign</h5>
-        <form method="post" action="{{ url_for('contracts.contract_create_campaign', contract_id=contract.id) }}">
-          <div class="mb-2">
-            <label class="form-label">Name</label>
-            <input class="form-control form-control-sm" type="text" name="name" required>
-          </div>
-          <div class="mb-2">
-            <label class="form-label">Description</label>
-            <textarea class="form-control form-control-sm" name="description" rows="2"></textarea>
-          </div>
-          <button class="btn btn-primary btn-sm">Add Campaign</button>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-lg-4">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h5 class="card-title">Create Program</h5>
-        <form method="post" action="{{ url_for('contracts.contract_create_program', contract_id=contract.id) }}">
-          <div class="mb-2">
-            <label class="form-label">Name</label>
-            <input class="form-control form-control-sm" type="text" name="name" required>
-          </div>
-          <div class="mb-2">
-            <label class="form-label">Campaign</label>
-            <select class="form-select form-select-sm" name="campaign_id" required>
-              <option value="">Select…</option>
-              {% for c in campaigns %}
-              <option value="{{ c.id }}">{{ c.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="mb-2">
-            <label class="form-label">Target List</label>
-            <select class="form-select form-select-sm" name="target_list_id">
-              <option value="">(none)</option>
-              {% for tl in target_lists %}
-              <option value="{{ tl.id }}">{{ tl.label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <button class="btn btn-primary btn-sm">Add Program</button>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-lg-4">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h5 class="card-title">Create Placement</h5>
-        <form method="post" action="{{ url_for('contracts.contract_create_placement', contract_id=contract.id) }}">
-          <div class="mb-2">
-            <label class="form-label">Name</label>
-            <input class="form-control form-control-sm" type="text" name="name" required>
-          </div>
-          <div class="mb-2">
-            <label class="form-label">Programs</label>
-            <select class="form-select form-select-sm" name="program_ids" multiple size="6" required>
-              {% for p in all_programs %}
-              <option value="{{ p.id }}">{{ p.name }} ({{ p.campaign.name }})</option>
-              {% endfor %}
-            </select>
-            <div class="form-text">Hold Ctrl/⌘ to select multiple.</div>
-          </div>
-          <div class="row">
-            <div class="col-6 mb-2">
-              <label class="form-label">Channel</label>
-              <input class="form-control form-control-sm" type="text" name="channel">
-            </div>
-            <div class="col-6 mb-2">
-              <label class="form-label">Status</label>
-              <input class="form-control form-control-sm" type="text" name="status">
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-6 mb-2">
-              <label class="form-label">Start Date</label>
-              <input class="form-control form-control-sm" type="date" name="start_date">
-            </div>
-            <div class="col-6 mb-2">
-              <label class="form-label">End Date</label>
-              <input class="form-control form-control-sm" type="date" name="end_date">
-            </div>
-          </div>
-          <button class="btn btn-primary btn-sm">Add Placement</button>
-        </form>
-      </div>
-    </div>
-  </div>
+<!-- Full contract info -->
+<div class="row g-3 mb-4">
+  <div class="col-md-2"><div class="small text-muted">Contract #</div><div>{{ contract.contract_number or '—' }}</div></div>
+  <div class="col-md-2"><div class="small text-muted">Status</div><div>{{ contract.status or '—' }}</div></div>
+  <div class="col-md-2"><div class="small text-muted">Budget Total</div><div>{{ contract.budget_total if contract.budget_total is not none else '—' }}</div></div>
+  <div class="col-md-2"><div class="small text-muted">Billing Terms</div><div>{{ contract.billing_terms or '—' }}</div></div>
+  <div class="col-md-2"><div class="small text-muted">Signed</div><div>{{ contract.signed_date or '—' }}</div></div>
+  <div class="col-md-2"><div class="small text-muted">Window</div><div>{{ contract.start_date or '—' }} → {{ contract.end_date or '—' }}</div></div>
+  {% if contract.notes %}
+  <div class="col-12"><div class="small text-muted">Notes</div><div class="border rounded p-2 bg-light">{{ contract.notes }}</div></div>
+  {% endif %}
 </div>
 
+<!-- Campaigns accordion with improved table and inline placement edit via modal -->
 <div class="card shadow-sm">
   <div class="card-body">
     <h5 class="card-title mb-3">Campaigns, Programs & Placements</h5>
@@ -132,16 +49,16 @@
           </h2>
           <div id="{{ collapse_id }}" class="accordion-collapse collapse" aria-labelledby="{{ heading_id }}" data-bs-parent="#campaignsAcc">
             <div class="accordion-body">
-              <!-- Body content unchanged from 13 -->
+
               {% set programs = programs_by_campaign.get(c.id, []) %}
               {% if programs %}
                 <table class="table table-sm align-middle">
                   <thead class="table-light">
                     <tr>
-                      <th style="width:22%">Program</th>
+                      <th style="width:20%">Program</th>
                       <th style="width:20%">Target List</th>
-                      <th style="width:38%">Placements</th>
-                      <th style="width:12%">Status</th>
+                      <th style="width:42%">Placements</th>
+                      <th style="width:10%">Status</th>
                       <th style="width:8%"></th>
                     </tr>
                   </thead>
@@ -159,11 +76,89 @@
                         {% if p.placements %}
                           <div class="d-flex flex-wrap gap-2">
                           {% for pl in p.placements %}
-                            <span class="badge bg-info text-dark">
+                            <span class="badge bg-info text-dark" data-bs-toggle="modal" data-bs-target="#editPlModal-{{ pl.id }}" style="cursor:pointer" title="Edit placement">
                               {{ pl.name }}
                               {% if pl.channel %}<span class="ms-1">· {{ pl.channel }}</span>{% endif %}
                               {% if pl.status %}<span class="ms-1">· {{ pl.status }}</span>{% endif %}
                             </span>
+
+                            <!-- Edit Placement Modal -->
+                            <div class="modal fade" id="editPlModal-{{ pl.id }}" tabindex="-1" aria-hidden="true">
+                              <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                  <form method="post" action="{{ url_for('placements.edit_placement', placement_id=pl.id) }}">
+                                    <div class="modal-header">
+                                      <h5 class="modal-title">Edit Placement: {{ pl.name }}</h5>
+                                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                      <input type="hidden" name="next" value="{{ url_for('contracts.view_contract', contract_id=contract.id) }}">
+                                      <div class="row g-3">
+                                        <div class="col-md-6">
+                                          <label class="form-label">Name</label>
+                                          <input class="form-control" type="text" name="name" value="{{ pl.name }}" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                          <label class="form-label">Placement Code</label>
+                                          <input class="form-control" type="text" name="placement_code" value="{{ pl.placement_code or '' }}">
+                                        </div>
+                                        <div class="col-md-6">
+                                          <label class="form-label">Programs (multi-select)</label>
+                                          {% set sel_ids = pl.programs | map(attribute='id') | list %}
+                                          <select class="form-select" name="program_ids" multiple size="6" required>
+                                            {% for p2 in all_programs %}
+                                            <option value="{{ p2.id }}" {% if p2.id in sel_ids %}selected{% endif %}>{{ p2.name }} ({{ p2.campaign.name }})</option>
+                                            {% endfor %}
+                                          </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                          <label class="form-label">Channel</label>
+                                          <input class="form-control" type="text" name="channel" value="{{ pl.channel or '' }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                          <label class="form-label">Status</label>
+                                          <input class="form-control" type="text" name="status" value="{{ pl.status or '' }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                          <label class="form-label">Format</label>
+                                          <input class="form-control" type="text" name="format" value="{{ pl.format or '' }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                          <label class="form-label">Ad Server</label>
+                                          <input class="form-control" type="text" name="ad_server" value="{{ pl.ad_server or '' }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                          <label class="form-label">Frequency Cap</label>
+                                          <input class="form-control" type="number" name="frequency_cap" value="{{ pl.frequency_cap or '' }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                          <label class="form-label">Impression Goal</label>
+                                          <input class="form-control" type="number" name="impression_goal" value="{{ pl.impression_goal or '' }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                          <label class="form-label">Click Goal</label>
+                                          <input class="form-control" type="number" name="click_goal" value="{{ pl.click_goal or '' }}">
+                                        </div>
+                                        <div class="col-md-6">
+                                          <label class="form-label">Start</label>
+                                          <input class="form-control" type="date" name="start_date" value="{{ pl.start_date.isoformat() if pl.start_date else '' }}">
+                                        </div>
+                                        <div class="col-md-6">
+                                          <label class="form-label">End</label>
+                                          <input class="form-control" type="date" name="end_date" value="{{ pl.end_date.isoformat() if pl.end_date else '' }}">
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                      <button class="btn btn-primary">Save Changes</button>
+                                    </div>
+                                  </form>
+                                </div>
+                              </div>
+                            </div>
+                            <!-- /Modal -->
+
                           {% endfor %}
                           </div>
                         {% else %}
@@ -187,9 +182,215 @@
         {% endfor %}
       </div>
     {% else %}
-      <div class="alert alert-info mb-0">No campaigns yet. Use the form above to add your first campaign.</div>
+      <div class="alert alert-info mb-0">No campaigns yet. Use the tabs above to add your first campaign.</div>
     {% endif %}
   </div>
 </div>
 
+<!-- Tabbed full forms -->
+<div class="card shadow-sm" style="margin-top: 15px;">
+  <div class="card-body">
+    <h5 class="card-title mb-3">Add Items</h5>
+    <ul class="nav nav-tabs mb-3" id="contractFormsTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-campaign" data-bs-toggle="tab" data-bs-target="#pane-campaign" type="button" role="tab" aria-controls="pane-campaign" aria-selected="true">Add Campaign</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-program" data-bs-toggle="tab" data-bs-target="#pane-program" type="button" role="tab" aria-controls="pane-program" aria-selected="false">Add Program</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-placement" data-bs-toggle="tab" data-bs-target="#pane-placement" type="button" role="tab" aria-controls="pane-placement" aria-selected="false">Add Placement</button>
+      </li>
+    </ul>
+    <div class="tab-content mb-4" id="contractFormsTabContent">
+      <!-- Campaign full form -->
+      <div class="tab-pane fade show active" id="pane-campaign" role="tabpanel" aria-labelledby="tab-campaign" tabindex="0">
+        <form class="card card-body border-0 shadow-sm" method="post" action="{{ url_for('contracts.contract_create_campaign', contract_id=contract.id) }}">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Name</label>
+              <input class="form-control" type="text" name="name" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Campaign Code</label>
+              <input class="form-control" type="text" name="campaign_code" placeholder="optional">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Start</label>
+              <input class="form-control" type="date" name="start_date">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">End</label>
+              <input class="form-control" type="date" name="end_date">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Launch</label>
+              <input class="form-control" type="date" name="launch_date">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Status</label>
+              <input class="form-control" type="text" name="status" placeholder="planned, in-flight, paused, complete">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Objective</label>
+              <input class="form-control" type="text" name="objective" placeholder="awareness, engagement, ...">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">KPI Goals (JSON)</label>
+              <input class="form-control" type="text" name="kpi_goals" placeholder='{"opens":10000,"clicks":2000}'>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Channel Mix (JSON)</label>
+              <input class="form-control" type="text" name="channel_mix" placeholder='{"email":true,"banner":true}'>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Description</label>
+              <textarea class="form-control" name="description" rows="3"></textarea>
+            </div>
+          </div>
+          <div class="mt-3">
+            <button class="btn btn-primary">Create Campaign</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Program full form -->
+      <div class="tab-pane fade" id="pane-program" role="tabpanel" aria-labelledby="tab-program" tabindex="0">
+        <form class="card card-body border-0 shadow-sm" method="post" action="{{ url_for('contracts.contract_create_program', contract_id=contract.id) }}">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Name</label>
+              <input class="form-control" type="text" name="name" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Program Code</label>
+              <input class="form-control" type="text" name="program_code" placeholder="optional">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Campaign</label>
+              <select class="form-select" name="campaign_id" required>
+                <option value="">Select…</option>
+                {% for c in campaigns %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Target List</label>
+              <select class="form-select" name="target_list_id">
+                <option value="">(none)</option>
+                {% for tl in target_lists %}
+                <option value="{{ tl.id }}">{{ tl.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Start</label>
+              <input class="form-control" type="date" name="start_date">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">End</label>
+              <input class="form-control" type="date" name="end_date">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Launch</label>
+              <input class="form-control" type="date" name="launch_date">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Program Type</label>
+              <input class="form-control" type="text" name="program_type" placeholder="e.g., Disease Consensus">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Content Type</label>
+              <input class="form-control" type="text" name="content_type" placeholder="microsite, webinar, ...">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Audience Segment</label>
+              <input class="form-control" type="text" name="audience_segment" placeholder="Oncologists">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Expected Reach</label>
+              <input class="form-control" type="number" name="expected_reach">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Status</label>
+              <input class="form-control" type="text" name="status" placeholder="planned, live, paused, complete">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <input class="form-control" type="text" name="notes">
+            </div>
+          </div>
+          <div class="mt-3">
+            <button class="btn btn-primary">Create Program</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Placement full form -->
+      <div class="tab-pane fade" id="pane-placement" role="tabpanel" aria-labelledby="tab-placement" tabindex="0">
+        <form class="card card-body border-0 shadow-sm" method="post" action="{{ url_for('contracts.contract_create_placement', contract_id=contract.id) }}">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Name</label>
+              <input class="form-control" type="text" name="name" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Placement Code</label>
+              <input class="form-control" type="text" name="placement_code" placeholder="optional">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Programs (multi-select)</label>
+              <select class="form-select" name="program_ids" multiple size="6" required>
+                {% for p in all_programs %}
+                <option value="{{ p.id }}">{{ p.name }} ({{ p.campaign.name }})</option>
+                {% endfor %}
+              </select>
+              <div class="form-text">Hold Ctrl/⌘ to select multiple.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Channel</label>
+              <input class="form-control" type="text" name="channel" placeholder="email, web, app">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Status</label>
+              <input class="form-control" type="text" name="status" placeholder="planned, live, paused, completed">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Format</label>
+              <input class="form-control" type="text" name="format" placeholder="HTML banner, native, ...">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Ad Server</label>
+              <input class="form-control" type="text" name="ad_server" placeholder="AdButler, Veeva, ...">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Frequency Cap</label>
+              <input class="form-control" type="number" name="frequency_cap">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Impression Goal</label>
+              <input class="form-control" type="number" name="impression_goal">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Click Goal</label>
+              <input class="form-control" type="number" name="click_goal">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Start</label>
+              <input class="form-control" type="date" name="start_date">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">End</label>
+              <input class="form-control" type="date" name="end_date">
+            </div>
+          </div>
+          <div class="mt-3">
+            <button class="btn btn-primary">Create Placement</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
