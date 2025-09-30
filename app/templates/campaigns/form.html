@@ -6,14 +6,34 @@
     <label class="form-label">Name</label>
     <input class="form-control" type="text" name="name" value="{{ campaign.name if campaign else '' }}" required>
   </div>
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label class="form-label">Contract</label>
+      <select class="form-select" name="contract_id" required>
+        <option value="">Select…</option>
+        {% for ct in contracts %}
+        <option value="{{ ct.id }}" {% if campaign and ct.id == campaign.contract_id %}selected{% endif %}>{{ ct.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6 mb-3">
+      <label class="form-label">Campaign Code</label>
+      <input class="form-control" type="text" name="campaign_code" value="{{ campaign.campaign_code if campaign else '' }}">
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-3 mb-3"><label class="form-label">Start</label><input class="form-control" type="date" name="start_date" value="{{ campaign.start_date if campaign and campaign.start_date else '' }}"></div>
+    <div class="col-md-3 mb-3"><label class="form-label">End</label><input class="form-control" type="date" name="end_date" value="{{ campaign.end_date if campaign and campaign.end_date else '' }}"></div>
+    <div class="col-md-3 mb-3"><label class="form-label">Launch</label><input class="form-control" type="date" name="launch_date" value="{{ campaign.launch_date if campaign and campaign.launch_date else '' }}"></div>
+    <div class="col-md-3 mb-3"><label class="form-label">Status</label><input class="form-control" type="text" name="status" value="{{ campaign.status if campaign else '' }}" placeholder="planned, in-flight, paused, complete"></div>
+  </div>
+  <div class="row">
+    <div class="col-md-6 mb-3"><label class="form-label">Objective</label><input class="form-control" type="text" name="objective" value="{{ campaign.objective if campaign else '' }}"></div>
+    <div class="col-md-6 mb-3"><label class="form-label">KPI Goals (JSON)</label><input class="form-control" type="text" name="kpi_goals" value="{{ campaign.kpi_goals if campaign else '' }}"></div>
+  </div>
   <div class="mb-3">
-    <label class="form-label">Contract</label>
-    <select class="form-select" name="contract_id" required>
-      <option value="">Select…</option>
-      {% for ct in contracts %}
-      <option value="{{ ct.id }}" {% if campaign and ct.id == campaign.contract_id %}selected{% endif %}>{{ ct.name }}</option>
-      {% endfor %}
-    </select>
+    <label class="form-label">Channel Mix (JSON)</label>
+    <input class="form-control" type="text" name="channel_mix" value="{{ campaign.channel_mix if campaign else '' }}" placeholder='{"email": true, "banner": true}'>
   </div>
   <div class="mb-3">
     <label class="form-label">Description</label>

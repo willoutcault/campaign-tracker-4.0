@@ -15,14 +15,9 @@ def create_app():
         os.makedirs(app.instance_path, exist_ok=True)
     except OSError:
         pass
-
     db.init_app(app)
-
-    # Auto-create tables on startup if they don't exist
     with app.app_context():
         db.create_all()
-
-    # register blueprints
     app.register_blueprint(main_bp)
     app.register_blueprint(clients_bp, url_prefix="/clients")
     app.register_blueprint(target_lists_bp, url_prefix="/target-lists")
@@ -30,4 +25,8 @@ def create_app():
     app.register_blueprint(campaigns_bp, url_prefix="/campaigns")
     app.register_blueprint(programs_bp, url_prefix="/programs")
     app.register_blueprint(placements_bp, url_prefix="/placements")
+    # simple index redirect
+    @app.route("/")
+    def index():
+        return '<div style="padding:16px"><a href="/contracts">Contracts</a></div>'
     return app

@@ -1,7 +1,5 @@
-
 import os
 from app import create_app, db
-from flask import current_app
 
 app = create_app()
 
@@ -11,64 +9,79 @@ def db_init():
         db.create_all()
         print("✓ Database initialized")
 
-@app.cli.command("migrate-m2m-placements")
-def migrate_m2m_placements():
+@app.cli.command("upgrade-schema-v12")
+def upgrade_schema_v12():
     from sqlalchemy import text
     with app.app_context():
         conn = db.engine.connect()
-        trans = conn.begin()
-        try:
-            # Detect if program_id column exists
-            info = conn.execute(text("PRAGMA table_info(placement)")).fetchall()
-            has_program_id = any(row[1] == 'program_id' for row in info)
-            if not has_program_id:
-                print("No 'program_id' column found on placement — nothing to migrate.")
-                trans.commit()
-                return
+        def has_column(table, col):
+            rows = conn.execute(text(f"PRAGMA table_info({table})")).fetchall()
+            return any(r[1] == col for r in rows)
 
-            print("Creating join table program_placement (if not exists)...")
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS program_placement (
-                    program_id INTEGER NOT NULL,
-                    placement_id INTEGER NOT NULL,
-                    PRIMARY KEY (program_id, placement_id),
-                    FOREIGN KEY (program_id) REFERENCES program(id),
-                    FOREIGN KEY (placement_id) REFERENCES placement(id)
-                );
-            """))
+        def add_col(table, col_def):
+            print(f"Adding {table}.{col_def} ...")
+            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col_def};"))
 
-            print("Backfilling mappings from placement.program_id -> program_placement...")
-            conn.execute(text("""
-                INSERT OR IGNORE INTO program_placement (program_id, placement_id)
-                SELECT program_id, id FROM placement WHERE program_id IS NOT NULL;
-            """))
+        # Contract columns
+        for col, ddl in [
+            ('contract_number', 'contract_number VARCHAR(100)'),
+            ('start_date', 'start_date DATE'),
+            ('end_date', 'end_date DATE'),
+            ('signed_date', 'signed_date DATE'),
+            ('budget_total', 'budget_total REAL'),
+            ('billing_terms', 'billing_terms VARCHAR(50)'),
+            ('status', 'status VARCHAR(30)'),
+            ('notes', 'notes TEXT'),
+            ('created_by', 'created_by VARCHAR(120)'),
+            ('last_modified_by', 'last_modified_by VARCHAR(120)'),
+        ]:
+            if not has_column('contract', col):
+                add_col('contract', ddl)
 
-            print("Rebuilding placement table without program_id...")
-            conn.execute(text("PRAGMA foreign_keys=off;"))
-            conn.execute(text("""
-                CREATE TABLE placement_new (
-                    id INTEGER PRIMARY KEY,
-                    name VARCHAR(200) NOT NULL,
-                    channel VARCHAR(100),
-                    status VARCHAR(50),
-                    start_date DATE,
-                    end_date DATE
-                );
-            """))
-            conn.execute(text("""
-                INSERT INTO placement_new (id, name, channel, status, start_date, end_date)
-                SELECT id, name, channel, status, start_date, end_date FROM placement;
-            """))
-            conn.execute(text("DROP TABLE placement;"))
-            conn.execute(text("ALTER TABLE placement_new RENAME TO placement;"))
-            conn.execute(text("PRAGMA foreign_keys=on;"))
-            trans.commit()
-            print("✓ Migration complete.")
-        except Exception as e:
-            print("Migration failed:", e)
-            trans.rollback()
-            raise
+        # Campaign columns
+        for col, ddl in [
+            ('campaign_code', 'campaign_code VARCHAR(100)'),
+            ('start_date', 'start_date DATE'),
+            ('end_date', 'end_date DATE'),
+            ('launch_date', 'launch_date DATE'),
+            ('objective', 'objective VARCHAR(120)'),
+            ('channel_mix', 'channel_mix TEXT'),
+            ('status', 'status VARCHAR(30)'),
+            ('kpi_goals', 'kpi_goals TEXT'),
+        ]:
+            if not has_column('campaign', col):
+                add_col('campaign', ddl)
+
+        # Program columns
+        for col, ddl in [
+            ('program_code', 'program_code VARCHAR(100)'),
+            ('start_date', 'start_date DATE'),
+            ('end_date', 'end_date DATE'),
+            ('launch_date', 'launch_date DATE'),
+            ('program_type', 'program_type VARCHAR(120)'),
+            ('content_type', 'content_type VARCHAR(120)'),
+            ('audience_segment', 'audience_segment VARCHAR(120)'),
+            ('status', 'status VARCHAR(30)'),
+            ('expected_reach', 'expected_reach INTEGER'),
+            ('notes', 'notes TEXT'),
+        ]:
+            if not has_column('program', col):
+                add_col('program', ddl)
+
+        # Placement columns
+        for col, ddl in [
+            ('placement_code', 'placement_code VARCHAR(100)'),
+            ('format', 'format VARCHAR(100)'),
+            ('frequency_cap', 'frequency_cap INTEGER'),
+            ('ad_server', 'ad_server VARCHAR(100)'),
+            ('impression_goal', 'impression_goal INTEGER'),
+            ('click_goal', 'click_goal INTEGER'),
+        ]:
+            if not has_column('placement', col):
+                add_col('placement', ddl)
+
+        print("✓ upgrade-schema-v12 completed")
+        conn.close()
 
 if __name__ == "__main__":
     app.run(debug=True)
-

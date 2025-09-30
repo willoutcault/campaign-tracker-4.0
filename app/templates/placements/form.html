@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 {% block content %}
 <h3>{{ 'Edit' if placement else 'New' }} Placement</h3>
@@ -17,26 +16,23 @@
     <div class="form-text">Hold Ctrl/⌘ to select multiple.</div>
   </div>
   <div class="row">
-    <div class="col-md-6 mb-3">
-      <label class="form-label">Channel</label>
-      <input class="form-control" type="text" name="channel" placeholder="email, app, web, ..." value="{{ placement.channel if placement else '' }}">
-    </div>
-    <div class="col-md-6 mb-3">
-      <label class="form-label">Status</label>
-      <input class="form-control" type="text" name="status" placeholder="planned, live, paused, complete" value="{{ placement.status if placement else '' }}">
-    </div>
+    <div class="col-md-6 mb-3"><label class="form-label">Channel</label><input class="form-control" type="text" name="channel" value="{{ placement.channel if placement else '' }}"></div>
+    <div class="col-md-6 mb-3"><label class="form-label">Format</label><input class="form-control" type="text" name="format" value="{{ placement.format if placement else '' }}" placeholder="HTML banner, text email, ..."></div>
   </div>
   <div class="row">
-    <div class="col-md-6 mb-3">
-      <label class="form-label">Start Date</label>
-      <input class="form-control" type="date" name="start_date" value="{{ placement.start_date.isoformat() if placement and placement.start_date else '' }}">
-    </div>
-    <div class="col-md-6 mb-3">
-      <label class="form-label">End Date</label>
-      <input class="form-control" type="date" name="end_date" value="{{ placement.end_date.isoformat() if placement and placement.end_date else '' }}">
-    </div>
+    <div class="col-md-4 mb-3"><label class="form-label">Status</label><input class="form-control" type="text" name="status" value="{{ placement.status if placement else '' }}"></div>
+    <div class="col-md-4 mb-3"><label class="form-label">Placement Code</label><input class="form-control" type="text" name="placement_code" value="{{ placement.placement_code if placement else '' }}"></div>
+    <div class="col-md-4 mb-3"><label class="form-label">Ad Server</label><input class="form-control" type="text" name="ad_server" value="{{ placement.ad_server if placement else '' }}"></div>
+  </div>
+  <div class="row">
+    <div class="col-md-6 mb-3"><label class="form-label">Frequency Cap</label><input class="form-control" type="number" name="frequency_cap" value="{{ placement.frequency_cap if placement else '' }}"></div>
+    <div class="col-md-3 mb-3"><label class="form-label">Impressions Goal</label><input class="form-control" type="number" name="impression_goal" value="{{ placement.impression_goal if placement else '' }}"></div>
+    <div class="col-md-3 mb-3"><label class="form-label">Clicks Goal</label><input class="form-control" type="number" name="click_goal" value="{{ placement.click_goal if placement else '' }}"></div>
+  </div>
+  <div class="row">
+    <div class="col-md-6 mb-3"><label class="form-label">Start Date</label><input class="form-control" type="date" name="start_date" value="{{ placement.start_date.isoformat() if placement and placement.start_date else '' }}"></div>
+    <div class="col-md-6 mb-3"><label class="form-label">End Date</label><input class="form-control" type="date" name="end_date" value="{{ placement.end_date.isoformat() if placement and placement.end_date else '' }}"></div>
   </div>
   <button class="btn btn-primary">Save</button>
 </form>
 {% endblock %}
-
