@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 <h3>Contract: {{ contract.name }}</h3>
-<p class="text-muted">Pharma: <strong>{{ contract.pharma.name }}</strong> · Brands: {{ contract.brands | map(attribute='name') | list | join(', ') }}</p>
+<p class="text-muted">
+  Pharma: <strong>{{ contract.pharma.name }}</strong>
+  · Brands: <strong>{{ contract.brands | map(attribute='name') | list | join(', ') }}</strong>
+</p>
 
 <div class="row g-4">
   <div class="col-lg-4">
@@ -101,33 +104,92 @@
   </div>
 </div>
 
-<hr class="my-4">
-<h5>Campaigns & Programs</h5>
-{% if campaigns %}
-  {% for c in campaigns %}
-    <div class="mb-3">
-      <h6 class="mb-2">{{ c.name }}</h6>
-      {% set programs = programs_by_campaign.get(c.id, []) %}
-      {% if programs %}
-        <table class="table table-sm table-striped">
-          <thead><tr><th>Program</th><th>Target List</th><th>Placements</th></tr></thead>
-          <tbody>
-            {% for p in programs %}
-            <tr>
-              <td>{{ p.name }}</td>
-              <td>{{ p.target_list.label if p.target_list else '' }}</td>
-              <td>{{ p.placements | map(attribute='name') | list | join(', ') }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <div class="text-muted">No programs yet.</div>
-      {% endif %}
-    </div>
-  {% endfor %}
-{% else %}
-  <div class="alert alert-info">No campaigns yet. Create one using the form above.</div>
-{% endif %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h5 class="card-title mb-3">Campaigns, Programs & Placements</h5>
+
+    {% if campaigns %}
+      <div class="accordion" id="campaignsAcc">
+        {% for c in campaigns %}
+        {% set collapse_id = 'collapse-' ~ c.id %}
+        {% set heading_id = 'heading-' ~ c.id %}
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="{{ heading_id }}">
+            <button class="accordion-button collapsed" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#{{ collapse_id }}"
+                    aria-expanded="false" aria-controls="{{ collapse_id }}">
+              <div class="w-100 d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>{{ c.name }}</strong>
+                  {% if c.status %}<span class="badge bg-secondary ms-2">{{ c.status }}</span>{% endif %}
+                  {% if c.start_date or c.end_date %}
+                    <small class="text-muted ms-2">{{ c.start_date or '—' }} → {{ c.end_date or '—' }}</small>
+                  {% endif %}
+                </div>
+                <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('campaigns.edit_campaign', campaign_id=c.id) }}">Edit</a>
+              </div>
+            </button>
+          </h2>
+          <div id="{{ collapse_id }}" class="accordion-collapse collapse" aria-labelledby="{{ heading_id }}" data-bs-parent="#campaignsAcc">
+            <div class="accordion-body">
+              <!-- Body content unchanged from 13 -->
+              {% set programs = programs_by_campaign.get(c.id, []) %}
+              {% if programs %}
+                <table class="table table-sm align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="width:22%">Program</th>
+                      <th style="width:20%">Target List</th>
+                      <th style="width:38%">Placements</th>
+                      <th style="width:12%">Status</th>
+                      <th style="width:8%"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {% for p in programs %}
+                    <tr>
+                      <td>
+                        <div class="fw-semibold">{{ p.name }}</div>
+                        {% if p.start_date or p.end_date %}
+                          <div class="small text-muted">{{ p.start_date or '—' }} → {{ p.end_date or '—' }}</div>
+                        {% endif %}
+                      </td>
+                      <td>{{ p.target_list.label if p.target_list else '' }}</td>
+                      <td>
+                        {% if p.placements %}
+                          <div class="d-flex flex-wrap gap-2">
+                          {% for pl in p.placements %}
+                            <span class="badge bg-info text-dark">
+                              {{ pl.name }}
+                              {% if pl.channel %}<span class="ms-1">· {{ pl.channel }}</span>{% endif %}
+                              {% if pl.status %}<span class="ms-1">· {{ pl.status }}</span>{% endif %}
+                            </span>
+                          {% endfor %}
+                          </div>
+                        {% else %}
+                          <span class="text-muted">No placements</span>
+                        {% endif %}
+                      </td>
+                      <td>{{ p.status or '' }}</td>
+                      <td class="text-end">
+                        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('programs.edit_program', program_id=p.id) }}">Edit</a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                  </tbody>
+                </table>
+              {% else %}
+                <div class="text-muted">No programs yet.</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="alert alert-info mb-0">No campaigns yet. Use the form above to add your first campaign.</div>
+    {% endif %}
+  </div>
+</div>
 
 {% endblock %}
