@@ -206,10 +206,10 @@
 
                                 <div class="col-md-6">
                                   <label class="form-label" style="margin-right: 5px;">Target List</label>
-                                  <input class="form-check-input" type="checkbox" id="contracts_program_show_all_tls">
-                                  <label class="form-check-label" for="contracts_program_show_all_tls">Show all</label>
+                                  <input class="form-check-input" type="checkbox" id="prog_show_all_{{ p.id }}">
+                                  <label class="form-check-label" for="prog_show_all_{{ p.id }}">Show all</label>
                                   <div class="d-flex gap-2">
-                                    <select class="form-select" id="contracts_program_target_list_id" name="target_list_id">
+                                    <select class="form-select" id="prog_tl_{{ p.id }}" name="target_list_id" data-current="{{ p.target_list_id or '' }}">
                                       <option value="">(none)</option>
                                     </select>
                                   </div>
