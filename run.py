@@ -83,5 +83,40 @@ def upgrade_schema_v12():
         print("✓ upgrade-schema-v12 completed")
         conn.close()
 
+# Hotfix 15: add CLI to create join tables
+@app.cli.command("upgrade-schema-v15")
+def upgrade_schema_v15():
+    """Create pharma_target_list and brand_target_list tables if they don't exist."""
+    from sqlalchemy import text
+    with app.app_context():
+        conn = db.engine.connect()
+        def has_table(name):
+            rows = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name=:n"), {"n": name}).fetchall()
+            return len(rows) > 0
+        if not has_table("pharma_target_list"):
+            conn.execute(text("""
+                CREATE TABLE pharma_target_list (
+                    pharma_id INTEGER NOT NULL,
+                    target_list_id INTEGER NOT NULL,
+                    PRIMARY KEY (pharma_id, target_list_id),
+                    FOREIGN KEY(pharma_id) REFERENCES pharma (id),
+                    FOREIGN KEY(target_list_id) REFERENCES target_list (id)
+                );
+            """))
+            print("✓ Created table pharma_target_list")
+        if not has_table("brand_target_list"):
+            conn.execute(text("""
+                CREATE TABLE brand_target_list (
+                    brand_id INTEGER NOT NULL,
+                    target_list_id INTEGER NOT NULL,
+                    PRIMARY KEY (brand_id, target_list_id),
+                    FOREIGN KEY(brand_id) REFERENCES brand (id),
+                    FOREIGN KEY(target_list_id) REFERENCES target_list (id)
+                );
+            """))
+            print("✓ Created table brand_target_list")
+        conn.close()
+        print("✓ upgrade-schema-v15 completed")
+
 if __name__ == "__main__":
     app.run(debug=True)

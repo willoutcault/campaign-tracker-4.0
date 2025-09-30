@@ -43,13 +43,12 @@
                     <small class="text-muted ms-2">{{ c.start_date or '—' }} → {{ c.end_date or '—' }}</small>
                   {% endif %}
                 </div>
-                <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('campaigns.edit_campaign', campaign_id=c.id) }}">Edit</a>
+                <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('campaigns.edit_campaign', campaign_id=c.id) }}" style="margin-right: 10px;">Edit</a>
               </div>
             </button>
           </h2>
           <div id="{{ collapse_id }}" class="accordion-collapse collapse" aria-labelledby="{{ heading_id }}" data-bs-parent="#campaignsAcc">
             <div class="accordion-body">
-
               {% set programs = programs_by_campaign.get(c.id, []) %}
               {% if programs %}
                 <table class="table table-sm align-middle">

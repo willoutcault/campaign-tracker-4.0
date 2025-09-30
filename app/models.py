@@ -63,6 +63,21 @@ program_placement = db.Table(
     db.Column('placement_id', db.Integer, db.ForeignKey('placement.id'), primary_key=True),
 )
 
+pharma_target_list = db.Table(
+    'pharma_target_list',
+    db.Column('pharma_id', db.Integer, db.ForeignKey('pharma.id'), primary_key=True),
+    db.Column('target_list_id', db.Integer, db.ForeignKey('target_list.id'), primary_key=True),
+)
+
+brand_target_list = db.Table(
+    'brand_target_list',
+    db.Column('brand_id', db.Integer, db.ForeignKey('brand.id'), primary_key=True),
+    db.Column('target_list_id', db.Integer, db.ForeignKey('target_list.id'), primary_key=True),
+)
+
+Pharma.target_lists = db.relationship('TargetList', secondary=pharma_target_list, backref='pharmas')
+Brand.target_lists = db.relationship('TargetList', secondary=brand_target_list, backref='brands')
+
 class Placement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
