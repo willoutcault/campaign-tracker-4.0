@@ -53,6 +53,9 @@ class Program(db.Model):
     name = db.Column(db.String(200), nullable=False)
     campaign_id = db.Column(db.Integer, db.ForeignKey('campaign.id'), nullable=False)
     target_list_id = db.Column(db.Integer, db.ForeignKey('target_list.id'), nullable=True)
+    platform = db.Column(db.String(200), nullable=False)
+    asset_id = db.Column(db.String(200), nullable=False)
+
     campaign = db.relationship('Campaign', backref=db.backref('programs', lazy=True))
     target_list = db.relationship('TargetList', backref=db.backref('programs', lazy=True))
 

@@ -34,10 +34,29 @@
     </div>
   </div>
   <div class="row">
-    <div class="col-md-3 mb-3"><label class="form-label">Start</label><input class="form-control" type="date" name="start_date" value="{{ program.start_date if program and program.start_date else '' }}"></div>
-    <div class="col-md-3 mb-3"><label class="form-label">End</label><input class="form-control" type="date" name="end_date" value="{{ program.end_date if program and program.end_date else '' }}"></div>
-    <div class="col-md-3 mb-3"><label class="form-label">Launch</label><input class="form-control" type="date" name="launch_date" value="{{ program.launch_date if program and program.launch_date else '' }}"></div>
-    <div class="col-md-3 mb-3"><label class="form-label">Status</label><input class="form-control" type="text" name="status" value="{{ program.status if program else '' }}"></div>
+    <div class="col-md-3 mb-3">
+      <label class="form-label">Start</label>
+      <input class="form-control" type="date" name="start_date" value="{{ program.start_date if program and program.start_date else '' }}">
+    </div>
+    <div class="col-md-3 mb-3">
+      <label class="form-label">End</label>
+      <input class="form-control" type="date" name="end_date" value="{{ program.end_date if program and program.end_date else '' }}">
+    </div>
+    <div class="col-md-3 mb-3">
+      <label class="form-label" for="platform">Platform</label>
+      <select class="form-select" id="platform" name="platform">
+        {% set platforms = ['app', 'cmd', 'dx'] %}
+        {% for opt in platforms %}
+          <option value="{{ opt }}" {% if program.platform == opt %}selected{% endif %}>
+            {{ opt }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 mb-3">
+      <label class="form-label">Asset ID</label>
+      <input class="form-control" type="text" name="asset_id" value="{{ program.asset_id if program and program.asset_id else '' }}">
+    </div>
   </div>
   <div class="row">
     <div class="col-md-4 mb-3"><label class="form-label">Program Type</label><input class="form-control" type="text" name="program_type" value="{{ program.program_type if program else '' }}"></div>

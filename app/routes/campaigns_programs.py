@@ -241,6 +241,8 @@ def edit_program(program_id):
         program.name = request.form.get("name","").strip()
         program.campaign_id = request.form.get("campaign_id", type=int)
         program.target_list_id = request.form.get("target_list_id", type=int)
+        program.platform = request.form.get("platform", type=str)
+        program.asset_id = request.form.get("asset_id", type=str)
         db.session.commit()
         nxt = request.form.get("next") or request.args.get("next")
         if nxt:

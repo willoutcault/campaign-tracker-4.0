@@ -16,7 +16,7 @@ if not DATABASE_URL or DATABASE_URL.strip() == "":
     # attempt to use instance/app.db relative path
     instance_path = os.path.join(os.getcwd(), "instance")
     os.makedirs(instance_path, exist_ok=True)
-    db_path = os.path.join(instance_path, "app.db")
+    db_path = os.path.join(instance_path, "app.sqlite")
     DATABASE_URL = f"sqlite:///{db_path}".replace('\\','/')
 
 def run_migrations_offline():
